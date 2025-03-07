@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        {% if current_user.logo_filename %}
+                            <img src="{{ url_for('static', filename='uploads/logos/' + current_user.logo_filename) }}" 
+                                 alt="{{ current_user.brand_name }} logo" 
+                                 class="me-3" 
+                                 style="width: 80px; height: 80px; object-fit: contain;">
+                        {% else %}
+                            <div class="me-3" style="width: 80px; height: 80px; background-color: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-building fa-2x"></i>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <h1 class="card-title mb-1">{{ current_user.brand_name }}</h1>
+                            <p class="card-text mb-0">{{ current_user.brand_reviews|length }} Reviews</p>
+                        </div>
+                    </div>
+                    <div>
+                        <form action="{{ url_for('update_brand_logo') }}" method="POST" enctype="multipart/form-data" class="d-flex align-items-center">
+                            <div class="me-2">
+                                <input type="file" name="logo" id="logo" class="d-none" accept="image/*">
+                                <label for="logo" class="btn btn-light btn-sm mb-0">
+                                    <i class="fas fa-camera"></i> Update Logo
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-light btn-sm" id="submitLogo" style="display: none;">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-star fa-3x text-warning mb-3"></i>
+                <h5 class="card-title">Average Rating</h5>
+                {% set total_reviews = current_user.brand_reviews|length %}
+                {% set total_rating = current_user.brand_reviews|map(attribute='rating')|sum %}
+                {% set avg_rating = total_rating / total_reviews if total_reviews > 0 else 0 %}
+                <p class="card-text display-6">{{ "%.1f"|format(avg_rating) }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-comments fa-3x text-success mb-3"></i>
+                <h5 class="card-title">Total Reviews</h5>
+                <p class="card-text display-6">{{ total_reviews }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-heart fa-3x text-danger mb-3"></i>
+                <h5 class="card-title">Likes</h5>
+                <p class="card-text display-6">{{ current_user.liked_brands|length }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-share-alt fa-3x text-info mb-3"></i>
+                <h5 class="card-title">Shares</h5>
+                <p class="card-text display-6">{{ current_user.shares }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Rating Distribution</h5>
+                <canvas id="ratingChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Brand Performance</h5>
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Recent Reviews</h5>
+                {% if reviews %}
+                    {% for review in reviews %}
+                    <div class="review-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ review.user.username }}</strong>
+                                <div class="rating">
+                                    {% for i in range(5) %}
+                                    <i class="fas fa-star {% if i < review.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <small class="text-muted">{{ review.created_at.strftime('%Y-%m-%d') }}</small>
+                        </div>
+                        <p class="mb-0">{{ review.comment }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No reviews yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Rating Distribution Chart
+    const ratingCtx = document.getElementById('ratingChart').getContext('2d');
+    const ratingData = {
+        labels: ['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'],
+        datasets: [{
+            data: [
+                {{ current_user.brand_reviews|selectattr('rating', 'equalto', 1)|list|length }},
+                {{ current_user.brand_reviews|selectattr('rating', 'equalto', 2)|list|length }},
+                {{ current_user.brand_reviews|selectattr('rating', 'equalto', 3)|list|length }},
+                {{ current_user.brand_reviews|selectattr('rating', 'equalto', 4)|list|length }},
+                {{ current_user.brand_reviews|selectattr('rating', 'equalto', 5)|list|length }}
+            ],
+            backgroundColor: [
+                '#ff4444',
+                '#ffbb33',
+                '#ffeb3b',
+                '#00C851',
+                '#33b5e5'
+            ]
+        }]
+    };
+    new Chart(ratingCtx, {
+        type: 'pie',
+        data: ratingData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Performance Chart
+    const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+    const performanceData = {
+        labels: ['Rating', 'Likes', 'Shares'],
+        datasets: [{
+            data: [
+                {{ avg_rating }},
+                {{ current_user.liked_brands|length }},
+                {{ current_user.shares }}
+            ],
+            backgroundColor: [
+                '#ffc107',
+                '#dc3545',
+                '#17a2b8'
+            ]
+        }]
+    };
+    new Chart(performanceCtx, {
+        type: 'pie',
+        data: performanceData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Logo upload preview
+    const logoInput = document.getElementById('logo');
+    const submitLogoBtn = document.getElementById('submitLogo');
+    
+    if (logoInput) {
+        logoInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                submitLogoBtn.style.display = 'inline-block';
+            } else {
+                submitLogoBtn.style.display = 'none';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+
+<style>
+.rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.rating input {
+    display: none;
+}
+
+.rating label {
+    cursor: pointer;
+    font-size: 1.5em;
+    color: #ddd;
+    padding: 0 0.1em;
+}
+
+.rating input:checked ~ label,
+.rating label:hover,
+.rating label:hover ~ label {
+    color: #ffd700;
+}
+
+.review-item {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.review-item:last-child {
+    border-bottom: none;
+}
+</style>
+{% endblock %} 

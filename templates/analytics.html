@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title">Brand Analytics</h2>
+            <div class="row">
+                <div class="col-12">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Brand</th>
+                                    <th>Total Reviews</th>
+                                    <th>Positive</th>
+                                    <th>Neutral</th>
+                                    <th>Negative</th>
+                                    <th>Sentiment Score</th>
+                                    <th>Growth Trend</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for brand in brands %}
+                                {% set positive = brand.brand_reviews|selectattr('sentiment', 'equalto', 'Positive')|list|length %}
+                                {% set neutral = brand.brand_reviews|selectattr('sentiment', 'equalto', 'Neutral')|list|length %}
+                                {% set negative = brand.brand_reviews|selectattr('sentiment', 'equalto', 'Negative')|list|length %}
+                                {% set total = brand.brand_reviews|length %}
+                                {% if total > 0 %}
+                                    {% set score = ((positive * 1 + neutral * 0 + negative * -1) / total * 100)|round|int %}
+                                {% else %}
+                                    {% set score = 0 %}
+                                {% endif %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if brand.logo_filename %}
+                                                <img src="{{ url_for('static', filename='uploads/logos/' + brand.logo_filename) }}" 
+                                                     alt="{{ brand.brand_name }}" 
+                                                     style="width: 30px; height: 30px; object-fit: contain;"
+                                                     class="me-2">
+                                            {% endif %}
+                                            {{ brand.brand_name }}
+                                        </div>
+                                    </td>
+                                    <td>{{ total }}</td>
+                                    <td class="text-success">{{ positive }} ({{ "%.1f"|format(positive/total*100 if total > 0 else 0) }}%)</td>
+                                    <td class="text-warning">{{ neutral }} ({{ "%.1f"|format(neutral/total*100 if total > 0 else 0) }}%)</td>
+                                    <td class="text-danger">{{ negative }} ({{ "%.1f"|format(negative/total*100 if total > 0 else 0) }}%)</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar {% if score > 0 %}bg-success{% elif score < 0 %}bg-danger{% else %}bg-warning{% endif %}" 
+                                                 role="progressbar" 
+                                                 style="width: {{ score|abs }}%"
+                                                 aria-valuenow="{{ score }}" 
+                                                 aria-valuemin="-100" 
+                                                 aria-valuemax="100">
+                                                {{ score }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if score > 50 %}
+                                            <i class="fas fa-arrow-up text-success"></i> Growing
+                                        {% elif score < 0 %}
+                                            <i class="fas fa-arrow-down text-danger"></i> Declining
+                                        {% else %}
+                                            <i class="fas fa-arrows-alt-h text-warning"></i> Stable
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

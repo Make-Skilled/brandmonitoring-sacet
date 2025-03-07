@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        {% if brand.logo_filename %}
+                            <img src="{{ url_for('static', filename='uploads/logos/' + brand.logo_filename) }}" 
+                                 alt="{{ brand.brand_name }} logo" 
+                                 class="me-3" 
+                                 style="width: 80px; height: 80px; object-fit: contain;">
+                        {% else %}
+                            <div class="me-3" style="width: 80px; height: 80px; background-color: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-building fa-2x"></i>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <h1 class="card-title mb-1">{{ brand.brand_name }}</h1>
+                            <p class="card-text mb-0">{{ total_reviews }} Reviews</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-star fa-3x text-warning mb-3"></i>
+                <h5 class="card-title">Average Rating</h5>
+                <p class="card-text display-6">{{ "%.1f"|format(avg_rating) }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-comments fa-3x text-success mb-3"></i>
+                <h5 class="card-title">Total Reviews</h5>
+                <p class="card-text display-6">{{ total_reviews }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-store fa-3x text-danger mb-3"></i>
+                <h5 class="card-title">Number of Stores</h5>
+                <p class="card-text display-6">{{ brand.stores|default(0) }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-chart-line fa-3x text-info mb-3"></i>
+                <h5 class="card-title">Brand Score</h5>
+                <p class="card-text display-6">{{ "%.1f"|format(avg_rating * (total_reviews|float / 10)) }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Reviews</h5>
+                {% if current_user.is_authenticated and not current_user.is_brand %}
+                <form action="{{ url_for('add_review', brand_id=brand.id) }}" method="POST" class="mb-4">
+                    <div class="mb-3">
+                        <label class="form-label">Rating</label>
+                        <div class="rating">
+                            {% for i in range(5, 0, -1) %}
+                            <input type="radio" name="rating" value="{{ i }}" id="star{{ i }}" required>
+                            <label for="star{{ i }}"><i class="fas fa-star"></i></label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Your Review</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit Review</button>
+                </form>
+                {% endif %}
+
+                {% if reviews %}
+                    {% for review in reviews %}
+                    <div class="review-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ review.user.username }}</strong>
+                                <div class="rating">
+                                    {% for i in range(5) %}
+                                    <i class="fas fa-star {% if i < review.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <span class="badge {% if review.sentiment == 'Positive' %}bg-success{% elif review.sentiment == 'Negative' %}bg-danger{% else %}bg-warning{% endif %} me-2">
+                                    {{ review.sentiment }}
+                                </span>
+                                <small class="text-muted">{{ review.created_at.strftime('%Y-%m-%d') }}</small>
+                            </div>
+                        </div>
+                        <p class="mb-0">{{ review.comment }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No reviews yet. Be the first to review this brand!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Brand Statistics</h5>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total Reviews
+                        <span class="badge bg-primary rounded-pill">{{ total_reviews }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Average Rating
+                        <span class="badge bg-warning rounded-pill">{{ "%.1f"|format(avg_rating) }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Number of Stores
+                        <span class="badge bg-danger rounded-pill">{{ brand.stores|default(0) }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Brand Score
+                        <span class="badge bg-info rounded-pill">{{ "%.1f"|format(avg_rating * (total_reviews|float / 10)) }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <h6 class="mb-2">Overall Sentiment Analysis</h6>
+                        <div class="progress" style="height: 25px;">
+                            {% set positive_count = reviews|selectattr('sentiment', 'equalto', 'Positive')|list|length %}
+                            {% set neutral_count = reviews|selectattr('sentiment', 'equalto', 'Neutral')|list|length %}
+                            {% set negative_count = reviews|selectattr('sentiment', 'equalto', 'Negative')|list|length %}
+                            {% set total = reviews|length %}
+                            {% if total > 0 %}
+                                {% set positive_percent = (positive_count / total * 100)|round %}
+                                {% set neutral_percent = (neutral_count / total * 100)|round %}
+                                {% set negative_percent = (negative_count / total * 100)|round %}
+                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ positive_percent }}%" 
+                                     title="Positive: {{ positive_count }} ({{ positive_percent }}%)">{{ positive_percent }}%</div>
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: {{ neutral_percent }}%" 
+                                     title="Neutral: {{ neutral_count }} ({{ neutral_percent }}%)">{{ neutral_percent }}%</div>
+                                <div class="progress-bar bg-danger" role="progressbar" style="width: {{ negative_percent }}%" 
+                                     title="Negative: {{ negative_count }} ({{ negative_percent }}%)">{{ negative_percent }}%</div>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex justify-content-between mt-2 small">
+                            <span class="text-success">Positive: {{ positive_count }}</span>
+                            <span class="text-warning">Neutral: {{ neutral_count }}</span>
+                            <span class="text-danger">Negative: {{ negative_count }}</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+.rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.rating input {
+    display: none;
+}
+
+.rating label {
+    cursor: pointer;
+    font-size: 1.5em;
+    color: #ddd;
+    padding: 0 0.1em;
+}
+
+.rating input:checked ~ label,
+.rating label:hover,
+.rating label:hover ~ label {
+    color: #ffd700;
+}
+
+.review-item {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.review-item:last-child {
+    border-bottom: none;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.card-title {
+    margin-bottom: 1.5rem;
+    font-weight: bold;
+    color: #2c3e50;
+}
+</style>
+{% endblock %} 

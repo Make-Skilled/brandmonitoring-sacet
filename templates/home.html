@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center py-5">
+                <h1 class="display-4">Brand Monitoring Tool</h1>
+                <p class="lead">Discover and review your favorite brands</p>
+                {% if not current_user.is_authenticated %}
+                    <a href="{{ url_for('register') }}" class="btn btn-light btn-lg mt-3">Get Started</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="mb-4">Featured Brands</h2>
+    </div>
+</div>
+
+<div class="row">
+    {% for brand in brands %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                {% if brand.logo_filename %}
+                    <img src="{{ url_for('static', filename='uploads/logos/' + brand.logo_filename) }}" 
+                         alt="{{ brand.brand_name }} logo" 
+                         class="mb-3" 
+                         style="width: 120px; height: 120px; object-fit: contain;">
+                {% else %}
+                    <div class="mb-3 mx-auto" style="width: 120px; height: 120px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-building fa-3x text-muted"></i>
+                    </div>
+                {% endif %}
+                <h3 class="card-title">{{ brand.brand_name }}</h3>
+                <div class="mb-3">
+                    {% set total_reviews = brand.brand_reviews|length %}
+                    {% set total_rating = brand.brand_reviews|map(attribute='rating')|sum %}
+                    {% set avg_rating = total_rating / total_reviews if total_reviews > 0 else 0 %}
+                    <div class="rating mb-2">
+                        {% for i in range(5) %}
+                        <i class="fas fa-star {% if i < avg_rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                        {% endfor %}
+                    </div>
+                    <small class="text-muted">{{ total_reviews }} reviews</small>
+                </div>
+                <div class="text-center mb-3">
+                    <div class="h5 mb-0">{{ brand.stores|default(0) }}</div>
+                    <small class="text-muted">Stores</small>
+                </div>
+                {% if current_user.is_authenticated %}
+                <a href="{{ url_for('brand_detail', brand_id=brand.id) }}" class="btn btn-primary w-100">
+                    View Details
+                </a>
+                {% else %}
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('brand_detail', brand_id=brand.id) }}" class="btn btn-primary">
+                        View Details
+                    </a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-primary">
+                        Login to Review
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-star fa-3x text-warning mb-3"></i>
+                <h5 class="card-title">Rate Brands</h5>
+                <p class="card-text">Share your experience and rate your favorite brands.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-chart-bar fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Track Performance</h5>
+                <p class="card-text">Monitor brand performance with detailed analytics.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-comments fa-3x text-success mb-3"></i>
+                <h5 class="card-title">Share Feedback</h5>
+                <p class="card-text">Connect with other users and share your thoughts.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

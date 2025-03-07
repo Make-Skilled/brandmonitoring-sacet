@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        {% if product.image_filename %}
+            <img src="{{ url_for('static', filename='uploads/products/' + product.image_filename) }}" 
+                 class="img-fluid rounded" 
+                 alt="{{ product.name }}">
+        {% else %}
+            <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                 style="height: 400px;">
+                <i class="fas fa-image fa-4x text-muted"></i>
+            </div>
+        {% endif %}
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    {% if product.brand.logo_filename %}
+                        <img src="{{ url_for('static', filename='uploads/logos/' + product.brand.logo_filename) }}" 
+                             alt="{{ product.brand.brand_name }} logo" 
+                             class="me-2" 
+                             style="width: 40px; height: 40px; object-fit: contain;">
+                    {% else %}
+                        <div class="me-2" style="width: 40px; height: 40px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-building text-muted"></i>
+                        </div>
+                    {% endif %}
+                    <h1 class="card-title mb-0">{{ product.name }}</h1>
+                </div>
+                <h6 class="card-subtitle mb-3 text-muted">By {{ product.brand.brand_name }}</h6>
+                <p class="card-text">{{ product.description }}</p>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <span class="h4 mb-0">${{ "%.2f"|format(product.price) }}</span>
+                    <div class="btn-group">
+                        {% if current_user.is_authenticated %}
+                        <button class="btn btn-outline-danger like-btn" 
+                                data-product-id="{{ product.id }}"
+                                data-liked="{{ 'true' if current_user.id in product.likes|map(attribute='user_id')|list else 'false' }}">
+                            <i class="fas fa-heart"></i>
+                            <span class="likes-count">{{ product.likes|length }}</span>
+                        </button>
+                        <button class="btn btn-outline-info share-btn" 
+                                data-product-id="{{ product.id }}">
+                            <i class="fas fa-share"></i>
+                            <span class="shares-count">{{ product.shares }}</span>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="d-grid">
+                    <a href="{{ url_for('brand_detail', brand_id=product.brand.id) }}" class="btn btn-outline-primary">
+                        View More Products from {{ product.brand.brand_name }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title mb-4">Reviews</h3>
+                {% if current_user.is_authenticated %}
+                <form method="POST" action="{{ url_for('add_review', product_id=product.id) }}" class="mb-4">
+                    <div class="mb-3">
+                        <label for="rating" class="form-label">Rating</label>
+                        <select class="form-select" id="rating" name="rating" required>
+                            <option value="5">5 Stars</option>
+                            <option value="4">4 Stars</option>
+                            <option value="3">3 Stars</option>
+                            <option value="2">2 Stars</option>
+                            <option value="1">1 Star</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Comment</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit Review</button>
+                </form>
+                {% else %}
+                <div class="alert alert-info">
+                    Please <a href="{{ url_for('login') }}">login</a> to leave a review.
+                </div>
+                {% endif %}
+
+                {% for review in reviews %}
+                <div class="border-bottom pb-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <h6 class="mb-0">{{ review.user.username }}</h6>
+                            <small class="text-muted">{{ review.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                        <div>
+                            {% for i in range(review.rating) %}
+                            <i class="fas fa-star text-warning"></i>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <p class="mb-0">{{ review.comment }}</p>
+                </div>
+                {% else %}
+                <p class="text-muted">No reviews yet. Be the first to review this product!</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.is_authenticated %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle like button clicks
+    document.querySelectorAll('.like-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            fetch(`/like_product/${productId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const likesCount = this.querySelector('.likes-count');
+                likesCount.textContent = data.likes_count;
+                this.dataset.liked = data.is_liked;
+                this.classList.toggle('active', data.is_liked);
+            });
+        });
+    });
+
+    // Handle share button clicks
+    document.querySelectorAll('.share-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            fetch(`/share_product/${productId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const sharesCount = this.querySelector('.shares-count');
+                sharesCount.textContent = data.shares_count;
+            });
+        });
+    });
+});
+</script>
+{% endif %}
+{% endblock %} 

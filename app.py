@@ -33,9 +33,9 @@ class User(UserMixin, db.Model):
     is_brand = db.Column(db.Boolean, default=False)
     brand_name = db.Column(db.String(100))
     logo_filename = db.Column(db.String(255))
+    stores = db.Column(db.Integer, default=0)
     brand_reviews = db.relationship('BrandReview', backref='brand', foreign_keys='BrandReview.brand_id')
     reviews_given = db.relationship('BrandReview', backref='user', foreign_keys='BrandReview.user_id')
-    stores = db.Column(db.Integer, default=0)
 
 class BrandReview(db.Model):
     __tablename__ = 'brand_review'
@@ -466,7 +466,8 @@ def analytics():
 
 if __name__ == '__main__':
     with app.app_context():
-        # Create all tables
+        # Drop all tables and recreate
+        db.drop_all()
         db.create_all()
         
         # Check if tables exist
